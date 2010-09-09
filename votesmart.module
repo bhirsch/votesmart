@@ -1,0 +1,125 @@
+<?php
+/**
+ * @file
+ *  Votesmart.module
+ */
+ 
+// todo remove this dependency by making api calls 100% REST-based
+//require_once("libs/slimphp/VoteSmart.php");
+
+/**
+ * Implementation of hook_help()
+ */
+/*
+function votesmart_help($path, $arg) {
+  if ($path == 'admin/help#votesmart') {
+    $txt = '';
+    $output = t($txt);
+    return $output;
+  }
+}
+// */
+
+function votesmart_menu() {
+  $items = array();
+
+  // votesmart/[office]/state
+  $items['votesmart/%/%'] = array(
+    'title' => 'candidate contact info',
+    'page callback' => 'votesmart_candidate_contact_info',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'votesmart_candidate_contact_info.inc',
+  );
+ 
+/*
+  // Office Class
+  // getTypes method
+  $items['votesmart/office/gettypes'];
+  // getOfficesByType method
+  $items['votesmart/office/getofficesbytypes'];
+
+  // Candidates Class
+  // getByOfficeState method  
+  $items['votesmart/'];
+
+  // Address Class
+  // getCampaign method
+  
+  // getCampaignWebAddressmethod
+// */
+
+  return $items;
+} 
+
+/**
+ * todo 
+ *  FOR NOW, JUST GET STATE LEGISLATOR INFO.
+ * 
+ * Get typeId here:
+ * http://api.votesmart.org/Office.getTypes?key=8be7942478e869e453aa7a5b48de02eb
+ * 
+ * Then get officeId here:
+ * (e.g. L for state legislatures)
+ * http://api.votesmart.org/Office.getOfficesByType?typeId=L&key=8be7942478e869e453aa7a5b48de02eb
+ */
+function votesmart_get_office_ids() {
+  $office_ids = array(
+    9, // State Senate
+    8, // House of Representatives
+    7, // State Assembly
+  );
+  return $office_ids;
+}
+// */
+
+/**
+ * @param $class 
+ *  string, votesmart api class
+ * 
+ * @param $method
+ *  string, votesmart api method
+ * 
+ * @param $key
+ *  string, votesmart api key
+ * 
+ * @param $args
+ *  array, arguments to be added to REST call in key=value pairs
+ * 
+ * @return
+ *  object, simplexml object
+ */ 
+function votesmart_xml($class, $method, $key, $args = NULL) {
+  $url = 'http://api.votesmart.org/'. $class .'.'. $method .'?key='. $key;
+  if ($args) {
+    foreach ($args as $key => $value) {
+      $url .= "&$key=$value";
+    }
+  }
+print_r($url);
+  $xml = simplexml_load_file($url) or die("url not loading");
+
+/*****
+  $obj = new VoteSmart("$class.$method", $args);
+  $xml = $obj->getXmlObj();
+//*****/
+
+  return $xml;
+}
+
+/**
+ * @param $office_id
+ *  integer, contested elected office for which we're looking up candidates
+ * 
+ * @param $state
+ *  string, two digit state code
+ * 
+ * @return
+ *  array, VoteSmart candidate IDs for requested office and state.
+ */ 
+/*
+function votesmart_get_candidate_ids($office_id, $state, $year = NULL) {
+  return $candidate_ids;
+}
+// */
