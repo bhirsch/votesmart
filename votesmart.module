@@ -97,7 +97,7 @@ function votesmart_xml($class, $method, $key, $args = NULL) {
       $url .= "&$key=$value";
     }
   }
-print_r($url);
+//print_r($url);
   $xml = simplexml_load_file($url) or die("url not loading");
 
 /*****
@@ -123,3 +123,4 @@ function votesmart_get_candidate_ids($office_id, $state, $year = NULL) {
   return $candidate_ids;
 }
 // */
+

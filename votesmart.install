@@ -1,0 +1,118 @@
+<?php
+/**
+ * @file votesmart.install
+ *  Install VoteSmart module. 
+ */
+
+/**
+ * Implementation of hook_install().
+ */ 
+function votesmart_install() {
+  drupal_install_schema('votesmart');
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function votesmart_schema() {
+  /**
+   * votesmart_candidate table
+   *
+   * This table "caches" votesmart data
+   * about individual candidates, provided
+   * by the Candidate and Address classes.
+   *
+   * todo 
+   * Note: VoteSmart's schema allows for many
+   * address records per candidate, but in 
+   * practice, it seems to be one-to-one.
+   * This votesmart_candidate_info forces 
+   * a one-to-one relationship. This is easier
+   * for processing data. But maybe it should be 
+   * revisited later. 
+   */
+
+  /**
+   * votesmart_candidate table
+   * 
+   * Cache data provided by VoteSmart's 
+   * Candidate class. 
+   */
+  $schema['votesmart_candidate'] = array(
+    'fields' => array(
+      'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'firstName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'nickName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'middleName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'preferredName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'lastName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'suffix' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'title' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'ballotname' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionParties' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionStatus' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionStage' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionDistrictId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionDistrictName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionOffice' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionOfficeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionStateId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionOfficeTypeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionYear' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionSpecial' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'electionDate' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'officeParties' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'officeDistrictId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'officeDistrictName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'officeStateId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'officeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'officeName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'officeTypeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+    ),
+    'primary key' => array('candidateId'),
+  );
+
+  /**
+   * votesmart_address_address table
+   * 
+   * Cache address data provided by VoteSmart's 
+   * Address class. 
+   */
+  $schema['votesmart_address_address'] = array(
+    'fields' => array(
+      '_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'type' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'typeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'street' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'city' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'state' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'zip' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+    ),
+    'primary key' => array('_id'),
+    'indexes' => array('candidateId' => array('candidateId')),
+  );
+
+  /**
+   * votesmart_address_phone table
+   * 
+   * Cache phone data provided by VoteSmart's 
+   * Address class. 
+   */
+  $schema['votesmart_address_phone'] = array(
+    'fields' => array(
+      '_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'type' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'typeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'street' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'city' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'state' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'zip' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+    ),
+    'primary key' => array('_id'),
+    'indexes' => array('candidateId' => array('candidateId')),
+  );
+  
+  return $schema;
+}
