@@ -5,6 +5,8 @@
  */
 
 /**
+ * Page callback for votesmart/%/%
+ * 
  * @param $state
  *  string, state code
  * 
@@ -14,53 +16,42 @@
 function votesmart_candidate_contact_info($state, $year = null) {
 //dsm($state);
 //dsm($year);
- 
+
   // Get all ids for the offices we want to look up.
   $office_ids = votesmart_get_office_ids();
   //dsm($office_ids);
 
   // Get all candidates running for each elected office
   // and store data in local votesmart_candidate table. 
-  foreach ($office_ids as $office_id) {
-    votesmart_get_candidates($office_id, $state, $year); 
+  $i = 0; 
+  foreach ($office_ids as $name => $office_id) {
+    // todo function should return something here for testing/error handling. 
+    $count = votesmart_get_candidates($office_id, $state, $year); 
+    if ($count) {
+      // Create a record in votesmart_list table 
+      // to indicate this list is being processed (on cron).   
+      // TODO $state_$year_$name
+      $file_name = $state .'_'. $year .'_'. $name; 
+      $timestamp = time();
+      db_query("INSERT INTO {votesmart_list} "
+              ."(file_name, status, candidate_records, timestamp) "
+              ."VALUES ('%s', '%s', %d, %d) ", 
+               $file_name,
+               'pending',  
+               $count, 
+               $timestamp );
+    $i++;
+    }
   } 
 
-/*
-    $delay = 0; 
-    // Iterate through candidates, getting contact info for each
-// TODO pull from db, process one after the other
-    foreach ($candidate_ids as $candidate_id) {
-      // Try 100 times, then give up
-      $attempt = 0;
-// CONTINUE HERE
-
-//dsm($candidate_id);
-      // get basic contact info
-      $class = 'Address';
-      $method = 'getCampaign';
-      $key = '8be7942478e869e453aa7a5b48de02eb';
-      $args = array('candidateId' => $candidate_id);
-      $xml = votesmart_xml($class, $method, $key, $args);
-// TODO update db table
-    }
+  if ($i) { 
+    $link = l('votesmart/lists', 'votesmart/lists');  
+    return "Thanks. $state $year candidates  have been added to the queue for processing. Run cron to process the list(s). Visit $link to check the list's status."; 
+  } else {
+    $state = strtoupper($state);
+    return "Sorry. VoteSmart didn't return any records for $state in $year.";
   }
-// */
 
-  // make sure directory exists 
-  $directory = file_directory_path() ."/votesmart/"; 
-  file_check_directory($directory, FILE_CREATE_DIRECTORY);
-
-  // save results to a file
-  $file_name = $state .'-'. $year .'.csv';
-  $file_path = "$directory/$file_name"; 
-  file_put_contents($file_path, 'this is a test');
-
-  // provide user a link to the file
-  global $base_url;
-  $path = $base_url .'/'. $file_path; 
-  $link = l($file_name, $path);
-  
-  return $link;
 }
 
 /**
@@ -85,8 +76,12 @@ function votesmart_get_candidates($office_id, $state, $year = null) {
   $args = array('officeId' => $office_id, 'stateId' => strtoupper($state));
   $xml = votesmart_xml($class, $method, $key, $args);
 
+  $count = 0;
   $candidate_ids = array();
   foreach ($xml->candidate as $candidate) {
+    // count records
+    $count++; 
+
     $candidateId = (string)$candidate->candidateId;
     $firstName =  (string)$candidate->firstName;
     $nickName =  (string)$candidate->nickName;
@@ -184,8 +179,8 @@ function votesmart_get_candidates($office_id, $state, $year = null) {
             ."VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s') ", 
             $candidateId, $firstName, $nickName, $middleName, $preferredName, $lastName, $suffix, $title, $ballotname, $electionParties, $electionStatus, $electionStage, $electionDistrictId, $electionDistrictName, $electionOffice, $electionOfficeId, $electionStateId, $electionOfficeTypeId, $electionYear, $electionSpecial, $electionDate, $officeParties, $officeDistrictId, $officeDistrictName, $officeStateId, $officeId, $officeName, $officeTypeId );
     }
-//    $candidate_ids[] = $candidateId;
-//dsm($candidate_ids);
-// TODO store these in a table, queued for processing.
   }
+  return $count; 
 }
+
+

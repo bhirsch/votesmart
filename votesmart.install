@@ -12,6 +12,13 @@ function votesmart_install() {
 }
 
 /**
+ * Implementation of hook_uninstall().
+ */ 
+function votesmart_uninstall() {
+  drupal_uninstall_schema('votesmart');
+}
+
+/**
  * Implementation of hook_schema().
  */
 function votesmart_schema() {
@@ -68,6 +75,7 @@ function votesmart_schema() {
       'officeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'officeName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'officeTypeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('candidateId'),
   );
@@ -88,6 +96,7 @@ function votesmart_schema() {
       'city' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'state' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'zip' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('_id'),
     'indexes' => array('candidateId' => array('candidateId')),
@@ -103,16 +112,59 @@ function votesmart_schema() {
     'fields' => array(
       '_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
       'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'type' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
-      'typeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
-      'street' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
-      'city' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
-      'state' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
-      'zip' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'phone1' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'phone2' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'fax1' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'fax2' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'tollFree' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'ttyd' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'cellphone' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
     'primary key' => array('_id'),
     'indexes' => array('candidateId' => array('candidateId')),
   );
-  
+
+  /**
+   * votesmart_address_webaddress table
+   * 
+   * Cache website and email data provided by VoteSmart's 
+   * Address class. 
+   */
+  $schema['votesmart_address_webaddress'] = array(
+    'fields' => array(
+      'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'webAddress' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'webAddressTypeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'webAddressType' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('webAddress'),
+    'indexes' => array('candidateId' => array('candidateId')),
+  );
+ 
+  /**
+   * votesmart_list table
+   * 
+   * Store a list of candidate lists
+   * and links to downloadable csv files.
+   */
+  $schema['votesmart_list'] = array(
+    'fields' => array(
+      'file_name' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'status' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      // votesmart_candidate table
+      'candidate_records' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      // votesmart_address_address table
+      'address_records' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      // votesmart_address_phone table
+      'phone_records' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      // votesmart_address_webaddress table
+      'webaddress_records' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('file_name', 'timestamp'),
+  );
+
   return $schema;
 }

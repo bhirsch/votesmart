@@ -23,15 +23,22 @@ function votesmart_help($path, $arg) {
 function votesmart_menu() {
   $items = array();
 
-  // votesmart/[office]/state
-  $items['votesmart/%/%'] = array(
+  $items['votesmart/lists'] = array(
+    'title' => 'Candidate Lists',
+    'page callback' => 'votesmart_lists',
+    'access arguments' => array('access content'),
+    'file' => 'votesmart_lists.inc',
+  );
+  // votesmart/state/[year]
+  $items['votesmart/buildlist/%/%'] = array(
     'title' => 'candidate contact info',
     'page callback' => 'votesmart_candidate_contact_info',
-    'page arguments' => array(1, 2),
+    'page arguments' => array(2, 3),
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'file' => 'votesmart_candidate_contact_info.inc',
   );
+
  
 /*
   // Office Class
@@ -66,9 +73,9 @@ function votesmart_menu() {
  */
 function votesmart_get_office_ids() {
   $office_ids = array(
-    9, // State Senate
-    8, // House of Representatives
-    7, // State Assembly
+    'state-senate' => 9, // State Senate
+    'state-house' => 8, // House of Representatives
+    'state-assembly' => 7, // State Assembly
   );
   return $office_ids;
 }
@@ -124,3 +131,176 @@ function votesmart_get_candidate_ids($office_id, $state, $year = NULL) {
 }
 // */
 
+/**
+ * Implementation hook_cron().
+ */
+function votesmart_cron() {
+  // Run data processing jobs.
+  // todo replace this with drupal_queue.
+
+// Get data to process on cron until votesmart/lists shows something as "complete". Then get link to .csv working on votesmart/lists.
+
+  // Get contact info for candidates
+  // and store in local tables.
+  votesmart_get_contact_info(); 
+
+  // make sure directory exists 
+  $directory = file_directory_path() ."/votesmart/"; 
+  file_check_directory($directory, FILE_CREATE_DIRECTORY);
+
+  // save results to a file
+  // (store parameters in filename)
+  $file_name = $state .'-'. $year .'.csv';
+  $file_path = "$directory/$file_name"; 
+  file_put_contents($file_path, 'this is a test');
+
+  // provide user a link to the file
+  global $base_url;
+  $path = $base_url .'/'. $file_path; 
+  $link = l($file_name, $path);
+
+  // Store link in votesmart_list table
+  // and update status from "pending" to "complete".
+  // TODO
+  
+}
+/**
+ * Get contact info for all the candidates 
+ * in the votesmart_candidates table
+ * and add cache locally in 
+ * votesmart_address_address, 
+ * and votesmart_address_phone, 
+ * and votesmart_address_webaddress 
+ * tables.
+ * 
+ * When cron runs twice without incrementing any of the counts 
+ * in candidate_records, address_records, phone_records or webaddress_records, 
+ * switch status from "pending" to "complete". 
+ * 
+ * todo  come up with a way to check to see if the contact info we have should be updated. 
+ */
+function votesmart_get_contact_info() {
+  // Get pending lists from voter_list.
+  $lists = _votesmart_get_pending_lists();
+//dsm($lists);
+
+  // Iterate through each list that needs to be processed
+  // looking up webaddresses, and basic contact info (address and phone).
+
+
+  // count webaddress_records
+  // count candidate_records
+  // count address_records 
+  // count phone_records
+
+  // (Count using votesmart_address_webaddress.)
+  foreach($lists as $list) {
+    $year = $list['year'];
+    // Format $state. ia should be IA.
+    $state = $list['state'];
+    $state = strtoupper($state);
+    // Format $office. E.g. make "state-senate" into "State Senate"
+    $office = $list['office'];
+    $office = str_replace('-', ' ', $office);
+    $office = ucwords($office);
+    $results = db_query("SELECT vc.candidateId "
+                    ."FROM {votesmart_candidate} vc "
+                    ."LEFT JOIN {votesmart_address_webaddress} vw ON vc.candidateId = vw.candidateId "
+                    ."WHERE ISNULL(vw.candidateId) "
+                    ."AND vc.electionStateId = '%s' "
+                    ."AND vc.electionYear = %d "
+                    ."AND vc.electionOffice = '%s'",
+                    $state,
+                    $year,
+                    $office);
+    $rows = array();
+    while ($row = db_fetch_array($results)) {
+      $rows[] = $row; 
+    }
+    $remaining = count($rows);
+    // TODO 
+    // If status = 'pending" and records_remaining = 0,
+    // create a csv file of the results, 
+    // update votesmart_list status to "complete" and 
+    // change the name to include '.csv'.
+   
+  }
+
+  // TODO 
+  // Use Address.getOfficeByOfficeState to get address/phone for everyone
+  // http://api.votesmart.org/Address.getOfficeByOfficeState?officeId=9&stateId=MA&key=8be7942478e869e453aa7a5b48de02eb
+    // Update votesmart_address_address
+    // Update votesmart_address_phone
+
+  // TODO 
+  // Use Address.getCampaignWebAddress to get websites and emails
+  // http://api.votesmart.org/Address.getCampaignWebAddress?candidateId=81542&key=8be7942478e869e453aa7a5b48de02eb
+
+  // TODO 
+  // figure out what happens if there's no WebAddress info for a candidate
+  // What get's returned? We need to record "none" or something in the table
+  // so we know the record has been processed. 
+
+ // TODO Add a timestamped record to votesmart_list every time cron runs. When cron runs twice without incrementing any of the counts in candidate_records, address_records, phone_records or webaddress_records, switch status from "pending" to "complete". 
+
+  // Select all the candidates who don't have 
+  // contact info. 
+/*******
+  $results = db_query("SELECT vc.candidateId, _id FROM {votesmart_candidate} vc " 
+          ."LEFT JOIN {votesmart_address_address} va ON vc.candidateId = va.candidateId "
+          ."WHERE ISNULL(_id) ");  
+  // Iterate through candidates, getting contact info for each
+  $delay = 0; 
+$debug_record_count = 0;
+// CONTINUE HERE
+  while ($row = db_fetch_object($results)) {
+$debug_record_count++;
+    // Try 100 times, then give up.
+    $status = 'pending'; 
+    $i = 0;
+    while ($status == 'pending' && $i < 100) {
+      // get basic contact info
+      $class = 'Address';
+      $method = 'getCampaign';
+      $key = '8be7942478e869e453aa7a5b48de02eb';
+      $args = array('candidateId' => $row->candidateId);
+      $xml = votesmart_xml($class, $method, $key, $args);
+//print_r($xml);
+      if ($xml != 'url not loading') {    
+        // TODO update db table
+        $status = 'complete';
+      } else {
+        // slow down requests
+        $delay += 100000;
+      }
+      $i++;
+      usleep($delay);
+    } 
+dsm($debug_record_count);
+  }
+// *******/
+}
+
+/**
+ * @return
+ *  array('filename' => array('state' => X, 'year' => Y, 'office' => Z)); 
+ */
+function _votesmart_get_pending_lists() {
+  //   Explode '_' in filename to get API params
+  //   (e.g. WHERE state = MA and year = 2010).
+  $results = db_query("SELECT * FROM {votesmart_list} "
+                     ."WHERE status = 'pending' ");
+  $lists = array();
+  while ($row = db_fetch_array($results)) {
+    $file_name = $row['file_name'];
+    $criteria = explode('_', $file_name);
+    $lists[$file_name]['state'] = $criteria[0];
+    $lists[$file_name]['year'] = $criteria[1];
+    $lists[$file_name]['candidate_records'] = $row['candidate_records']; 
+    $lists[$file_name]['address_records'] = $row['address_records']; 
+    $lists[$file_name]['phone_records'] = $row['phone_records']; 
+    $lists[$file_name]['webaddress_records'] = $row['webaddress_records']; 
+  }
+
+  return $lists;
+}
