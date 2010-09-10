@@ -47,6 +47,7 @@ function votesmart_schema() {
    */
   $schema['votesmart_candidate'] = array(
     'fields' => array(
+      // VoteSmart candidate class returns these fields
       'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
       'firstName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'nickName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
@@ -75,43 +76,15 @@ function votesmart_schema() {
       'officeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'officeName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'officeTypeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
-      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-    ),
-    'primary key' => array('candidateId'),
-  );
-
-  /**
-   * votesmart_address_address table
-   * 
-   * Cache address data provided by VoteSmart's 
-   * Address class. 
-   */
-  $schema['votesmart_address_address'] = array(
-    'fields' => array(
-      '_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      // Votesmart Address class exposes these fields
+      // address
       'type' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'typeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'street' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'city' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'state' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'zip' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
-      'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-    ),
-    'primary key' => array('_id'),
-    'indexes' => array('candidateId' => array('candidateId')),
-  );
-
-  /**
-   * votesmart_address_phone table
-   * 
-   * Cache phone data provided by VoteSmart's 
-   * Address class. 
-   */
-  $schema['votesmart_address_phone'] = array(
-    'fields' => array(
-      '_id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      // phone
       'phone1' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'phone2' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'fax1' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
@@ -121,8 +94,7 @@ function votesmart_schema() {
       'cellphone' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
-    'primary key' => array('_id'),
-    'indexes' => array('candidateId' => array('candidateId')),
+    'primary key' => array('candidateId'),
   );
 
   /**
