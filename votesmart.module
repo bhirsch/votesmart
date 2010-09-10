@@ -408,6 +408,7 @@ cellphone: $cellphone
 function _votesmart_get_webaddress($office, $state, $year, $file_name){
  // Get candidates w/o webaddress info.
 dsm('test one');
+/*****
   $results = db_query("SELECT vc.candidateId FROM {votesmart_candidate} vc "
              ."LEFT JOIN {votesmart_address_webaddress} vw "
                ."ON vc.candidateId = vw.candidateId "
@@ -416,11 +417,11 @@ dsm('test one');
              ."AND vc.electionYear = %d "
              ."AND ISNULL(vw.candidateId) ", 
              $office, $state, $year);
-/*********
+*******/
+
  // Process all web addresses at once. It's easiest this way.
  $results = db_query("SELECT candidateId FROM {votesmart_candidate}  "
            ."WHERE candidateId NOT IN ( SELECT candidateId FROM {votesmart_address_webaddress} )");
-// *******/
 
   while ($row = db_fetch_object($results)) {
 dsm('test2');
