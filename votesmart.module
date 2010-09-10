@@ -184,17 +184,14 @@ function votesmart_get_contact_info() {
   $lists = _votesmart_get_pending_lists();
 //dsm($lists);
 
-  // Iterate through each list that needs to be processed
+  // Iterate through each pending list 
   // looking up webaddresses, and basic contact info (address and phone).
-
-
-  // count webaddress_records
-  // count candidate_records
-  // count address_records 
-  // count phone_records
-
-  // (Count using votesmart_address_webaddress.)
   foreach($lists as $list) {
+    $file_name = $list['file_name'];
+    $candidate_records = $list['candidate_records'];
+    $address_records = $list['address_records'];
+    $phone_records = $list['phone_records'];
+    $webaddress_records = $list['webaddress_records'];
     $year = $list['year'];
     // Format $state. ia should be IA.
     $state = $list['state'];
@@ -203,82 +200,69 @@ function votesmart_get_contact_info() {
     $office = $list['office'];
     $office = str_replace('-', ' ', $office);
     $office = ucwords($office);
-    $results = db_query("SELECT vc.candidateId "
-                    ."FROM {votesmart_candidate} vc "
-                    ."LEFT JOIN {votesmart_address_webaddress} vw ON vc.candidateId = vw.candidateId "
-                    ."WHERE ISNULL(vw.candidateId) "
-                    ."AND vc.electionStateId = '%s' "
-                    ."AND vc.electionYear = %d "
-                    ."AND vc.electionOffice = '%s'",
-                    $state,
-                    $year,
-                    $office);
-    $rows = array();
-    while ($row = db_fetch_array($results)) {
-      $rows[] = $row; 
-    }
-    $remaining = count($rows);
-    // TODO 
-    // If status = 'pending" and records_remaining = 0,
-    // create a csv file of the results, 
-    // update votesmart_list status to "complete" and 
-    // change the name to include '.csv'.
-   
-  }
-
-  // TODO 
-  // Use Address.getOfficeByOfficeState to get address/phone for everyone
-  // http://api.votesmart.org/Address.getOfficeByOfficeState?officeId=9&stateId=MA&key=8be7942478e869e453aa7a5b48de02eb
-    // Update votesmart_address_address
-    // Update votesmart_address_phone
-
-  // TODO 
-  // Use Address.getCampaignWebAddress to get websites and emails
-  // http://api.votesmart.org/Address.getCampaignWebAddress?candidateId=81542&key=8be7942478e869e453aa7a5b48de02eb
-
-  // TODO 
-  // figure out what happens if there's no WebAddress info for a candidate
-  // What get's returned? We need to record "none" or something in the table
-  // so we know the record has been processed. 
-
- // TODO Add a timestamped record to votesmart_list every time cron runs. When cron runs twice without incrementing any of the counts in candidate_records, address_records, phone_records or webaddress_records, switch status from "pending" to "complete". 
-
-  // Select all the candidates who don't have 
-  // contact info. 
-/*******
-  $results = db_query("SELECT vc.candidateId, _id FROM {votesmart_candidate} vc " 
-          ."LEFT JOIN {votesmart_address_address} va ON vc.candidateId = va.candidateId "
-          ."WHERE ISNULL(_id) ");  
-  // Iterate through candidates, getting contact info for each
-  $delay = 0; 
-$debug_record_count = 0;
-// CONTINUE HERE
-  while ($row = db_fetch_object($results)) {
-$debug_record_count++;
-    // Try 100 times, then give up.
-    $status = 'pending'; 
-    $i = 0;
-    while ($status == 'pending' && $i < 100) {
-      // get basic contact info
-      $class = 'Address';
-      $method = 'getCampaign';
-      $key = '8be7942478e869e453aa7a5b48de02eb';
-      $args = array('candidateId' => $row->candidateId);
-      $xml = votesmart_xml($class, $method, $key, $args);
-//print_r($xml);
-      if ($xml != 'url not loading') {    
-        // TODO update db table
-        $status = 'complete';
-      } else {
-        // slow down requests
-        $delay += 100000;
+    // get office_id
+    $office_ids = votesmart_get_office_ids();
+    $office_id = '';
+    foreach($office_ids as $office_name => $id) {
+      if (!$office_id) {
+        $office_id = ($office_name == $list['office']) ? $id : false;
       }
       $i++;
-      usleep($delay);
+    }
+//dsm($list);
+//dsm("office_id: $office_id");
+
+    // Create a new record in votesmart_list
+    // to store updated record counts. (Leave timestamp null
+    // then stamp it at the very end.)
+    db_query("INSERT INTO {votesmart_list} (file_name, status, candidate_records) "
+            ."VALUES ('%s', 'processing', %d) ", 
+             $file_name, $candidate_records); 
+
+    // Get address_records and phone_record
+    //  Skip if phone_records count is >= candidate_records
+    //  todo This can probably be made more precise. One candidate
+    //  could legitimately have more than one phone or address record.
+    if ($phone_records < $candidate_records) {
+      _votesmart_get_address_phone($office_id, $state, $file_name);
+    }
+
+    // Get webaddress_records
+    // Note: Don't ever skip this step. The mysql table will not 
+    // create duplicate websites or email addresses. People definitely
+    // have multipe websites and email addresses.
+    _votesmart_get_webaddress($office, $state, $year, $file_name);    
+  
+    // Check if list is complete.
+    // 
+    // Add a timestamped record to votesmart_list every time this process runs.
+    // When cron runs twice without incrementing any of the counts in  
+    // candidate_records, address_records, phone_records or 
+    // webaddress_records, switch status from "pending" to "complete". 
+    // 
+    // Timestamp latest cron run. 
+    $timestamp = time();
+    db_query("UPDATE {votesmart_list} SET timestamp = %d "
+            ."WHERE file_name = '%s' AND timestamp = 0 ", 
+            $timestamp, $file_name); 
+    // Now compare two last processing attmepts. 
+    $results = db_query("SELECT * FROM {votesmart_list} "
+               ."WHERE file_name = '%s' " 
+               ."ORDER BY timestamp DESC LIMIT 2", 
+               $file_name);
+    $batch = array();
+    while ($row = db_fetch_object($results)){
+      $batch[] = $row;
+    }
+    // If no new records have been added, processing is complete. 
+    // TODO Create a CSV of the results. 
+    if ($batch[0]->phone_records == $batch[1]->phone_records 
+     && $batch[0]->address_records == $batch[1]->address_records
+     && $batch[0]->webaddress_records == $batch[1]->webaddress_records) {
+      // TODO continue here. 
     } 
-dsm($debug_record_count);
+
   }
-// *******/
 }
 
 /**
@@ -294,8 +278,10 @@ function _votesmart_get_pending_lists() {
   while ($row = db_fetch_array($results)) {
     $file_name = $row['file_name'];
     $criteria = explode('_', $file_name);
+    $lists[$file_name]['file_name'] = $file_name;
     $lists[$file_name]['state'] = $criteria[0];
     $lists[$file_name]['year'] = $criteria[1];
+    $lists[$file_name]['office'] = $criteria[2];
     $lists[$file_name]['candidate_records'] = $row['candidate_records']; 
     $lists[$file_name]['address_records'] = $row['address_records']; 
     $lists[$file_name]['phone_records'] = $row['phone_records']; 
@@ -303,4 +289,193 @@ function _votesmart_get_pending_lists() {
   }
 
   return $lists;
+}
+
+/**
+ * @param $office_id
+ *  int, VoteSmart id number for office
+ * 
+ * @param $state_id, 
+ *  string, e.g. MA, NY
+ * 
+ * @param $list_name
+ *  string, name of related list (same as file name in votesmart_list table)
+ */
+function _votesmart_get_address_phone($office_id, $state_id, $list_name) {
+//dsm("office_id: $office_id");
+//dsm("state_id: $state_id");
+
+  // Get basic contact info for whole list from VoteSmart API.
+  $class = 'Address';
+  $method = 'getOfficeByOfficeState';
+  $key = '8be7942478e869e453aa7a5b48de02eb';
+  $args = array('officeId' => $office_id, 'stateId' => $state_id);
+  $xml = votesmart_xml($class, $method, $key, $args);
+//print_r($xml);
+
+  // Iterate through each candidate storing contact info.
+  $count = 0; 
+  $timestamp = time();
+  foreach ($xml->office as $office) {
+    //count records
+    $count++;
+    $candidateId = (string)$office->candidate->candidateId;
+    // votesmart_address_address 
+    $type = (string)$office->address->type;
+    $typeId = (string)$office->address->typeId;
+    $street = (string)$office->address->street;
+    $city = (string)$office->address->city;
+    $state = (string)$office->address->state;
+    $zip = (string)$office->address->zip;
+    // votesmart_address_phone
+    $phone1 = (string)$office->phone->phone1; 
+    $phone2 = (string)$office->phone->phone2;   
+    $fax1 = (string)$office->phone->fax1;
+    $fax2 = (string)$office->phone->fax2;  
+    $tollFree = (string)$office->phone->tollFree;  
+    $ttyd = (string)$office->phone->ttyd;  
+    $cellphone = (string)$office->phone->cellphone;  
+    
+/*****
+dsm("
+candidateId: $candidateId 
+type: $type 
+typeId: $typeId
+street: $street
+city: $city
+state: $state
+zip: $zip
+phone1: $phone1
+phone2: $phone2
+fax1: $fax1
+fax2: $fax2
+tollFree: $tollFree
+ttyd: $ttyd
+cellphone: $cellphone
+"); 
+// ********/
+
+    // Store address info in votesmart_address_address
+    db_query("INSERT INTO {votesmart_address_address} " 
+            ."(candidateId, type, typeId, street, city, state, zip, timestamp ) "
+            ."VALUES(%d, '%s', '%s','%s','%s','%s','%s', %d) ", 
+            $candidateId,
+            $type,
+            $typeId, 
+            $street,
+            $city,
+            $state,
+            $zip,
+            $timestamp ); 
+
+    // Store phone info in votesmart_address_phone.  
+    db_query("INSERT INTO {votesmart_address_phone} "
+ ."(candidateId, phone1, phone2, fax1, fax2, tollFree, ttyd, cellphone, timestamp ) " 
+ ."VALUES(%d, '%s','%s','%s','%s','%s','%s','%s', %d) ", 
+            $candidateId,
+            $phone1, 
+            $phone2,
+            $fax1,
+            $fax2,
+            $tollFree,
+            $ttyd,
+            $cellphone,
+            $timestamp );
+  
+    // Update votesmart_list address_records and phone_records counts
+    db_query("UPDATE {votesmart_list} "
+            ."SET address_records = %d, phone_records = %d "
+            ."WHERE file_name = '%s' AND timestamp = 0 ",
+            $count, $count, $list_name);
+  }
+}
+
+/**
+ * One-by-one, look up candidates without webaddress info.
+ *
+ * @param $office
+ *  string, VoteSmart human-readable name of office
+ * 
+ * @param $state
+ *  string, VoteSmart stateId (uppercase, like MA, NY, etc.)
+ * 
+ * @param $year
+ *  int, year of election, e.g. 2010
+ * 
+ * @param $file_name
+ *  string, name of related file (or list) in votesmart_list table
+ */
+function _votesmart_get_webaddress($office, $state, $year, $file_name){
+ // Get candidates w/o webaddress info.
+dsm('test one');
+  $results = db_query("SELECT vc.candidateId FROM {votesmart_candidate} vc "
+             ."LEFT JOIN {votesmart_address_webaddress} vw "
+               ."ON vc.candidateId = vw.candidateId "
+             ."WHERE vc.electionOffice = '%s' "
+             ."AND vc.officeStateId = '%s' "
+             ."AND vc.electionYear = %d "
+             ."AND ISNULL(vw.candidateId) ", 
+             $office, $state, $year);
+/*********
+ // Process all web addresses at once. It's easiest this way.
+ $results = db_query("SELECT candidateId FROM {votesmart_candidate}  "
+           ."WHERE candidateId NOT IN ( SELECT candidateId FROM {votesmart_address_webaddress} )");
+// *******/
+
+  while ($row = db_fetch_object($results)) {
+dsm('test2');
+    $candidateId = $row->candidateId;
+//dsm($candidateId);
+    $timestamp = time();
+    // Iterate through candidates one-by-one, getting webaddress info. 
+    // Get basic contact info for whole list from VoteSmart API.
+    $class = 'Address';
+    $method = 'getCampaignWebAddress';
+    $key = '8be7942478e869e453aa7a5b48de02eb';
+    $args = array('candidateId' => $candidateId);
+    $xml = votesmart_xml($class, $method, $key, $args);
+//print_r($xml);
+    // TODO Add error handling like thie everywhere votesmart_xml() is called. 
+    if ($xml->errorMessage) {
+      $msg = (string)$xml->errorMessage;
+      db_query("INSERT INTO {votesmart_address_webaddress} " 
+            ."(candidateId, webAddress, webAddressTypeId, webAddressType, timestamp) "
+            ."VALUES (%d, '%s', '%s','%s',%d) ",
+            $candidateId, $msg, '', '', $timestamp);
+    } else {
+      foreach($xml->address as $webaddress) {
+        $webAddressTypeId = (string)$webaddress->webAddressTypeId;
+        $webAddressType = (string)$webaddress->webAddressType;
+        $webAddress = (string)$webaddress->webAddress;
+/*
+dsm("
+webAddressTypeId: $webAddressTypeId
+webAddressType: $webAddressType
+webAddress: $webAddress
+");
+// */
+        db_query("INSERT INTO {votesmart_address_webaddress} " 
+            ."(candidateId, webAddress, webAddressTypeId, webAddressType, timestamp) "
+            ."VALUES (%d, '%s', '%s','%s',%d) ",
+            $candidateId, $webAddress, $webAddressTypeId, $webAddressType, $timestamp);
+      }
+    }
+  } 
+  // Count candidates from this list who now have webaddress info.
+  // Update votesmart_list table counts. 
+  $results = db_query("SELECT vc.candidateId FROM {votesmart_candidate} vc "
+             ."JOIN {votesmart_address_webaddress} vw "
+               ."ON vc.candidateId = vw.candidateId "
+             ."WHERE electionOffice = '%s' "
+             ."AND officeStateId = '%s' "
+             ."AND electionYear = %d ",
+             $office, $state, $year);
+  $count = 0; 
+  while ($row = db_fetch_object($results)) {
+    $count++;
+  }
+  db_query("UPDATE {votesmart_list} "
+          ."SET webaddress_records = %d "
+          ."WHERE file_name = '%s' AND timestamp = 0 ",
+          $count, $file_name);
 }

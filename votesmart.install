@@ -134,12 +134,12 @@ function votesmart_schema() {
   $schema['votesmart_address_webaddress'] = array(
     'fields' => array(
       'candidateId' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'webAddress' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'webAddress' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'webAddressTypeId' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'webAddressType' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'timestamp' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
-    'primary key' => array('webAddress'),
+    'primary key' => array('webAddress', 'candidateId'),
     'indexes' => array('candidateId' => array('candidateId')),
   );
  
