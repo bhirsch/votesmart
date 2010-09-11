@@ -237,10 +237,12 @@ function votesmart_get_contact_info() {
       $batch[] = $row;
     }
     // If no new records have been added, processing is complete. 
-    // TODO Create a CSV of the results. 
     if ($batch[0]->phone_records == $batch[1]->phone_records 
      && $batch[0]->address_records == $batch[1]->address_records
      && $batch[0]->webaddress_records == $batch[1]->webaddress_records) {
+
+/*****************
+// NOTE: This is all handled by TW / Views / Views Bonus now.
       // make sure directory exists 
       $directory = file_directory_path() ."/votesmart/"; 
       file_check_directory($directory, FILE_CREATE_DIRECTORY);
@@ -252,7 +254,7 @@ function votesmart_get_contact_info() {
 // CONTINUE HERE
 //   Write a function that maps VoteSmart data to SalesForce columns.
 //   Create the CSV, then dump the contents into the file created here. 
-      file_put_contents($file_path, 'this is a test');
+      file_put_contents($file_path, 'This was a test. Please see SalesForce module and TW View for CSV.');
 
       // provide user a link to the file
       global $base_url;
@@ -262,6 +264,11 @@ function votesmart_get_contact_info() {
       db_query("UPDATE {votesmart_list} SET status = 'complete', file_link = '%s' "
             ."WHERE file_name = '%s' AND timestamp = %d ", 
             $link, $file_name, $timestamp); 
+// ****************/
+
+      db_query("UPDATE {votesmart_list} SET status = 'complete' "
+            ."WHERE file_name = '%s' AND timestamp = %d ", 
+            $file_name, $timestamp); 
     } 
   }
 }
@@ -504,28 +511,3 @@ webAddress: $webAddress
 }
 
 
-//-------------------------------------------
-// Format VoteSmart Data for SalesForce
-//-------------------------------------------
-
-/**
- * Process on cron.
- * 
- * @return 
- *  string, html, send back a link to the CSV file that was just created
- */ 
-// TODO decide what param to sent, $list? OR $state, $year, $office? something else? 
-function _votesmart_to_salesforce() {
-// TODO Create votesmart_to_salesforce table in votesmart.install
-  // add candidate IDs to votesmart_to_salesforce w/ status 'pending' 
-  // Iterate through all candidates whose status is not 'complete'
-  // votesmart_candidate
-  // votesmart_address_address
-  // votesmart_address_phone
-  // votesmart_address_webaddress
-
-  // Generate contents of CSV
-  // Save CSV
-  // Send back $link to CSV
-
-}

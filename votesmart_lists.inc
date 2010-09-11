@@ -8,7 +8,7 @@
  * Page callback for votesmart/lists.
  */
 function votesmart_lists() {
-  $results = db_query("SELECT file_link, file_name, status, candidate_records, "
+  $results = db_query("SELECT file_name, status, candidate_records, "
                      ." address_records, phone_records, webaddress_records,  timestamp  "
                     // ." address_records, phone_records, webaddress_records, MAX( timestamp )  "
                      ."FROM {votesmart_list} " 
@@ -20,7 +20,7 @@ function votesmart_lists() {
     }
     $rows[] = $row;
   }
-  $header = array('link', 'file_name', 'status', 'candidate_records', 'address_records', 'phone_records', 'webaddress_records', 'timestamp');
+  $header = array('file_name', 'status', 'candidate_records', 'address_records', 'phone_records', 'webaddress_records', 'timestamp');
   $caption = t('To build a list go to votesmart/buildlist/[state]/[year]');
   $output = theme('table', $header, $rows);
 
