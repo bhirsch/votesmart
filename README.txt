@@ -18,12 +18,13 @@ imported into SalesForce. But it's really doing three separate things, that shou
   module to request data. 
 - Process VoteSmart data by flattening it out and storing it in a single table,
   neatly formatted for sending to SalesForce. 
+
+3. List Building (other modules do this better...)
+- Expose swssf table with TW
+- Make data into an Exportable view with views_bonus
 - Provide a list of links to views which use args as params for lists it has
   built. e.g. salesforce/ma/2010/csv, salesforce/ia/2010/csv, etc.
 
-3. List Building (other modules do this better...)
-	Expose swssf table with TW
-	Make data into an Exportable view with views_bonus
  
 
 
