@@ -1,3 +1,32 @@
+NOTES FOR FUTURE REWRITE: 
+Making this whole thing "list oriented" was a mistake. This was originally
+created in order to use VoteSmart data to do build lists of candidates to be
+imported into SalesForce. But it's really doing three separate things, that should really be packaged into three separate modules:
+
+1. VoteSmart modules.
+- votesmart.module accept $class, $method, $args, and return $xml 
+  (maybe in the future bake in some other end-user stuff for interactong w/ API)
+- vsdata.module:   
+-- accept requests for data (parameters like "MA" and "2010")
+-- process requests and store data inside votesmart_* tables 
+   (which are caching the XML data sent from VoteSmart).
+-- provide a hook that notifies other modules if their requests have been
+   processed and fulfilled.
+
+2. SWS SalesForce module. 
+- Provide a web form for accepting params which will be sent to VoteSmart
+  module to request data. 
+- Process VoteSmart data by flattening it out and storing it in a single table,
+  neatly formatted for sending to SalesForce. 
+- Provide a list of links to views which use args as params for lists it has
+  built. e.g. salesforce/ma/2010/csv, salesforce/ia/2010/csv, etc.
+
+3. List Building (other modules do this better...)
+	Expose swssf table with TW
+	Make data into an Exportable view with views_bonus
+ 
+
+
 Get typeId here:
 http://api.votesmart.org/Office.getTypes?key=8be7942478e869e453aa7a5b48de02eb
 
@@ -48,7 +77,4 @@ electionStatus field doesn't have 'won', it includes:
 | Running           |
 | Lost              |
 | Too Close To Call | 
-
-
-
 
