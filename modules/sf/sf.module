@@ -2,11 +2,26 @@
 /**
  * @file swssf.module
  *  SWS SalesForce module
+ * 
+ * Format VoteSmart Data for SWS SalesForce
  */
 
-//-------------------------------------------
-// Format VoteSmart Data for SalesForce
-//-------------------------------------------
+// TODO Try packaging sf as a feature module, export and store TW Views in code. 
+
+/**
+ * Implementation of hook_menu(). 
+ * 
+ * TODO provide a list of links to dynamic views / csv files. 
+ */ 
+
+
+/**
+ * Implementation of hook_cron(). 
+ */ 
+function sf_cron() {
+  // Process votesmart data. 
+  _sf_votesmart_to_salesforce();
+}
 
 /**
  * Process on cron.
@@ -14,18 +29,164 @@
  * @return 
  *  string, html, send back a link to the CSV file that was just created
  */ 
-// TODO decide what param to sent, $list? OR $state, $year, $office? something else? 
 function _sf_votesmart_to_salesforce() {
-// TODO Create votesmart_to_salesforce table in votesmart.install
-  // add candidate IDs to votesmart_to_salesforce w/ status 'pending' 
+  // Add new candidate IDs. Set status 'pending'.
+  // Get all 'pending' IDs. 
+  $candidateIds = _sf_new_candidateIds(); 
   // Iterate through all candidates whose status is not 'complete'
-  // votesmart_candidate
-  // votesmart_address_address
-  // votesmart_address_phone
-  // votesmart_address_webaddress
-
-  // Generate contents of CSV
-  // Save CSV
-  // Send back $link to CSV
-
+  foreach($candidateIds as $candidateId) { 
+    $pass = 0; 
+    // Get data from votesmart_candidate table. 
+    $pass += _sf_votesmart_candidate($candidateId);  
+dsm($pass);
+    // Get data votesmart_address_address table.
+    // Get data votesmart_address_phone table.
+    // Get data votesmart_address_webaddress table.
+    // Check if data is done being processed. Each 
+    // function returns +1 if it completes its own data processing. 
+    if ($pass == 4) {
+      // TODO Update status to 'complete'.
+    }
+  } 
 }
+
+
+/**
+ * Add new candidate IDs to sf_votesmart_to_salesforce_status. Status 'pending'.
+ * 
+ * @return
+ *  array, candidateIds with status 'pending'
+ */
+function _sf_new_candidateIds() {
+  // First, find out candidateIds to exclude. 
+  $results = db_query("SELECT VoteSmartID FROM {sf_votesmart_to_salesforce} ");
+  $exclude = '';
+  $i = 0;
+  while($row = db_fetch_array($results)) {
+    $candidateId = $row['VoteSmartID']; 
+    $exclude .= ($i == 0) ? "$candidateId" : ", $candidateId"; 
+    $i++;
+  }
+  // Get new IDs.
+  $sql = "SELECT candidateId FROM {votesmart_candidate} ";
+  if ($exclude) {
+    $sql .= "WHERE candidateId NOT IN ( $exclude )";
+  } 
+  $results = db_query($sql);
+  // Now find out if there are new IDs to insert.
+  $values0 = '';
+  $values1 = '';
+  $i = 0; 
+  while ($row = db_fetch_object($results)) {
+    $candidateId = $row->candidateId; 
+    $values0 .= ($i == 0) ? "( $candidateId, 'pending' )" : ", ( $candidateId, 'pending')" ; 
+    $values1 .= ($i == 0) ? "( $candidateId )" : ", ( $candidateId )" ; 
+    $i++; 
+  }
+  // Insert new IDs.
+  if ($values0) {
+    $sql = "INSERT INTO {sf_votesmart_to_salesforce_status} (VoteSmartID, status) " 
+          ."VALUES $values0 "; 
+    db_query($sql);
+    $sql = "INSERT INTO {sf_votesmart_to_salesforce} (VoteSmartID) " 
+          ."VALUES $values1 "; 
+    db_query($sql);
+  }
+  
+  // Now get all pending candidates's IDs (VoteSmartIDs).
+  $results = db_query("SELECT VoteSmartID FROM {sf_votesmart_to_salesforce_status} " 
+             ."WHERE status = 'pending' ");
+  $candidateIds = array();
+  while($row = db_fetch_object($results)) {
+    $candidateIds[] = $row->VoteSmartID;
+  }
+
+  return $candidateIds; 
+}
+
+/**
+ * Get data from votesmart_candidate table. 
+ * 
+ * @return 
+ *  int, 1 pass, 0 fail.
+ */ 
+function _sf_votesmart_candidate($candidateId) {
+  $results = db_query("SELECT firstName, lastName, title, electionStateId,  " 
+                       ."electionDistrictName, electionOffice, electionParties,  " 
+                       ."electionStage, electionDate, electionYear,  "
+
+                       ."electionStatus, electionSpecial, preferredName, suffix, " 
+                       ."ballotname, electionDistrictId, electionOfficeId, "
+                       ."electionOfficeTypeId, officeParties, officeDistrictId, "
+                       ."officeDistrictName, officeStateId, officeId, officeName, "
+                       ."officeTypeId, timestamp "
+
+                       ."FROM {votesmart_candidate} "
+                       ."WHERE candidateId = %d ", $candidateId);
+  while ($row = db_fetch_object($results)) {
+    $FirstName = $row->firstName;
+    $LastName = $row->lastName;
+    $Title = $row->title;
+    $State = $row->electionStateId;
+    $District = $row->electionDistrictName;
+    $Office = $row->electionOffice;
+    $Party = $row->electionParties;
+    $ElectionStage = $row->electionStage;
+    $ElectionDate = $row->electionDate;
+    $ElectionYear = $row->electionYear;
+    $Notes = "electionStatus: $row->electionStatus, electionSpecial: $row->electionSpecial, preferredName: $row->preferredName, suffix: $row->suffix, ballotname: $row->ballotname, electionDistrictId: $row->electionDistrictId, electionOfficeId: $row->electionOfficeId, electionOfficeTypeId: $row->electionOfficeTypeId, officeParties: $row->officeParties, officeDistrictId: $row->officeDistrictId, officeDistrictName: $row->officeDistrictName, officeStateId: $row->officeStateId, officeId: $row->officeId, officeName: $row->officeName, officeTypeId: $row->officeTypeId, timestamp: $row->timestamp"; 
+  } 
+  if ($LastName) {
+    db_query("UPDATE {sf_votesmart_to_salesforce} " 
+            ."SET " 
+              ."FirstName = '%s', "
+              ."LastName = '%s', "
+              ."Title = '%s', "
+              ."State = '%s', "
+              ."District = '%s', "
+              ."Office = '%s', "
+              ."Party = '%s', "
+              ."ElectionStage = '%s', "
+              ."ElectionDate = '%s', "
+              ."ElectionYear = '%s', "
+              ."Notes = '%s' "
+            ."WHERE VoteSmartID = %d",
+              $FirstName, 
+              $LastName, 
+              $Title, 
+              $State, 
+              $District, 
+              $Office, 
+              $Party, 
+              $ElectionStage, 
+              $ElectionDate, 
+              $ElectionYear, 
+              $Notes,
+            $candidateId); 
+/*
+dsm("
+FirstName              $FirstName, 
+LastName              $LastName, 
+Title              $Title, 
+State              $State, 
+District              $District, 
+Office              $Office, 
+Party              $Party, 
+ElectionStage              $ElectionStage, 
+ElectionDate              $ElectionDate, 
+ElectionYear              $ElectionYear, 
+Notes              $Notes,
+");
+// */
+    $pass = 1; 
+  } else {
+    $pass = 0; 
+  }
+
+  return $pass;
+}
+
+
+
+
+
