@@ -36,5 +36,19 @@ http://api.votesmart.org/Address.getCampaignWebAddress?candidateId=81542&key=8be
 
 
 
-NOTE:
-change $key in lib/slipphp/config.php
+NOTES: 
+If you use VoteSmart library, change $key in lib/slipphp/config.php
+
+
+VOTESMART DATA NOTES:
+
+votesmart_candidate
+------------------------------------------------
+electionStatus field doesn't have 'won', it includes:
+| Running           |
+| Lost              |
+| Too Close To Call | 
+
+
+
+
