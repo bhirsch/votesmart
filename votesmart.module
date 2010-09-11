@@ -301,9 +301,12 @@ function _votesmart_get_pending_lists() {
     $i++;
   }
   // Get pending lists. 
-  $results = db_query("SELECT * FROM {votesmart_list} "
-                     ."WHERE status = 'pending' " 
-                     ."AND file_name NOT IN ( $exclude )" );
+  $sql = "SELECT * FROM {votesmart_list} "
+        ."WHERE status = 'pending' "; 
+  if ($exclude) {
+    $sql .= "AND file_name NOT IN ( $exclude )";
+  } 
+  $results = db_query($sql);
 
   $lists = array();
   while ($row = db_fetch_array($results)) {

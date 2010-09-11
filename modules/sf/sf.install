@@ -1,0 +1,85 @@
+<?php
+/**
+ * @file sf.install
+ *  Install SWS SalesForce module. 
+ */
+
+/**
+ * Implementation of hook_install().
+ */ 
+function sf_install() {
+  drupal_install_schema('sf');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */ 
+function sf_uninstall() {
+  drupal_uninstall_schema('sf');
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function sf_schema() {
+    /** 
+     * Keep track of data processing status.
+     */
+   $schema['sf_votesmart_to_salesforce_status'] = array(
+     'fields' => array(
+       'VoteSmartID' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+       'status' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      ),
+      'primary key' => array('VoteSmartID'),
+    );
+
+    /**
+     * Store cached votesmart data here, reformatted
+     * for importing into SalesForce.
+     * 
+     * This table will be exposed to Views by Table Wizard (TW) 
+     * module. It's contents will be filtered by Views
+     * and made exportable by Views Bonus. 
+     */
+   $schema['sf_votesmart_to_salesforce'] = array(
+    'fields' => array(
+      'VoteSmartID' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'FullName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'FirstName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'LastName' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Salutation' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Title' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Email' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Status' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Description' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Website' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'AddressLine1' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Line2' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Line3' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'City' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'State/Province' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'PostalCode' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Country' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Phone (District Office)' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'District' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Office' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Party' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Phone(Home)' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Opponent' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'LeadQuality' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Phone(Campaign)' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'WebsiteQuality' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Phone(Govt)' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Incumbent' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Phone(Cell)' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'ElectionStage' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'ElectionDate' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Election Year' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Webmail' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'Notes' => array('type' => 'text'),
+    ),
+    'primary key' => array('VoteSmartID'),
+  );
+
+  return $schema;
+}

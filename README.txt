@@ -12,6 +12,10 @@ imported into SalesForce. But it's really doing three separate things, that shou
    (which are caching the XML data sent from VoteSmart).
 -- provide a hook that notifies other modules if their requests have been
    processed and fulfilled.
+- Ideas to consider for architecture of VoteSmart rebuild: 
+   -> try importing XML with feeds module
+   -> try views-enabling api w/ view that pulls field data
+      straight from api calls
 
 2. SWS SalesForce module. 
 - Provide a web form for accepting params which will be sent to VoteSmart

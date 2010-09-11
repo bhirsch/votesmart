@@ -1,0 +1,6 @@
+; $Id $
+name = SWS Salesforce
+description = Format VoteSmart data for SalesForce
+core = 6.x
+version = "6.x-0.0"
+project = ""

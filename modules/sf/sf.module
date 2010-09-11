@@ -1,0 +1,31 @@
+<?php 
+/**
+ * @file swssf.module
+ *  SWS SalesForce module
+ */
+
+//-------------------------------------------
+// Format VoteSmart Data for SalesForce
+//-------------------------------------------
+
+/**
+ * Process on cron.
+ * 
+ * @return 
+ *  string, html, send back a link to the CSV file that was just created
+ */ 
+// TODO decide what param to sent, $list? OR $state, $year, $office? something else? 
+function _sf_votesmart_to_salesforce() {
+// TODO Create votesmart_to_salesforce table in votesmart.install
+  // add candidate IDs to votesmart_to_salesforce w/ status 'pending' 
+  // Iterate through all candidates whose status is not 'complete'
+  // votesmart_candidate
+  // votesmart_address_address
+  // votesmart_address_phone
+  // votesmart_address_webaddress
+
+  // Generate contents of CSV
+  // Save CSV
+  // Send back $link to CSV
+
+}
