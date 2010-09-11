@@ -298,31 +298,18 @@ function _votesmart_get_pending_lists() {
                      ."WHERE status = 'pending' " 
                      ."AND file_name NOT IN ( $exclude )" );
 
-/*
-  //Build an array of completed lists to be filtered out.
-  $results2 = db_query("SELECT file_name FROM {votesmart_list} "
-                      ."WHERE status = 'complete' ");
-  // TODO Build array of file_name's to exclude. 
-  while ($row = db_fetch_array($results)) {
-    
-  }
-// */
-
-
   $lists = array();
   while ($row = db_fetch_array($results)) {
     $file_name = $row['file_name'];  
-// TODO    if () { 
-      $criteria = explode('_', $file_name);
-      $lists[$file_name]['file_name'] = $file_name;
-      $lists[$file_name]['state'] = $criteria[0];
-      $lists[$file_name]['year'] = $criteria[1];
-      $lists[$file_name]['office'] = $criteria[2];
-      $lists[$file_name]['candidate_records'] = $row['candidate_records']; 
-      $lists[$file_name]['address_records'] = $row['address_records']; 
-      $lists[$file_name]['phone_records'] = $row['phone_records']; 
-      $lists[$file_name]['webaddress_records'] = $row['webaddress_records']; 
-// TODO    }
+    $criteria = explode('_', $file_name);
+    $lists[$file_name]['file_name'] = $file_name;
+    $lists[$file_name]['state'] = $criteria[0];
+    $lists[$file_name]['year'] = $criteria[1];
+    $lists[$file_name]['office'] = $criteria[2];
+    $lists[$file_name]['candidate_records'] = $row['candidate_records']; 
+    $lists[$file_name]['address_records'] = $row['address_records']; 
+    $lists[$file_name]['phone_records'] = $row['phone_records']; 
+    $lists[$file_name]['webaddress_records'] = $row['webaddress_records']; 
   }
 
   return $lists;
