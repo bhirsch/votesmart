@@ -133,37 +133,19 @@ function votesmart_get_candidate_ids($office_id, $state, $year = NULL) {
 
 /**
  * Implementation hook_cron().
+ * 
+ *  Run data processing jobs.
+ * todo replace this with drupal_queue.
  */
 function votesmart_cron() {
-  // Run data processing jobs.
-  // todo replace this with drupal_queue.
-
-// Get data to process on cron until votesmart/lists shows something as "complete". Then get link to .csv working on votesmart/lists.
-
-  // Get contact info for candidates
-  // and store in local tables.
+  // Get data to process on cron until 
+  // votesmart/lists shows something as "complete". 
+  // Then get link to .csv working on votesmart/lists.
+  //   Get contact info for candidates
+  //   and store in local tables.
   votesmart_get_contact_info(); 
-
-  // make sure directory exists 
-  $directory = file_directory_path() ."/votesmart/"; 
-  file_check_directory($directory, FILE_CREATE_DIRECTORY);
-
-  // save results to a file
-  // (store parameters in filename)
-  $file_name = $state .'-'. $year .'.csv';
-  $file_path = "$directory/$file_name"; 
-  file_put_contents($file_path, 'this is a test');
-
-  // provide user a link to the file
-  global $base_url;
-  $path = $base_url .'/'. $file_path; 
-  $link = l($file_name, $path);
-
-  // Store link in votesmart_list table
-  // and update status from "pending" to "complete".
-  // TODO
-  
 }
+
 /**
  * Get contact info for all the candidates 
  * in the votesmart_candidates table
@@ -247,7 +229,7 @@ function votesmart_get_contact_info() {
             $timestamp, $file_name); 
     // Now compare two last processing attmepts. 
     $results = db_query("SELECT * FROM {votesmart_list} "
-               ."WHERE file_name = '%s' " 
+               ."WHERE file_name = '%s' AND status != 'complete' " 
                ."ORDER BY timestamp DESC LIMIT 2", 
                $file_name);
     $batch = array();
@@ -259,9 +241,28 @@ function votesmart_get_contact_info() {
     if ($batch[0]->phone_records == $batch[1]->phone_records 
      && $batch[0]->address_records == $batch[1]->address_records
      && $batch[0]->webaddress_records == $batch[1]->webaddress_records) {
-      // TODO continue here. 
-    } 
+      // make sure directory exists 
+      $directory = file_directory_path() ."/votesmart/"; 
+      file_check_directory($directory, FILE_CREATE_DIRECTORY);
 
+      // save results to a file
+      // (store parameters in filename)
+      $full_name = $file_name .'.csv';
+      $file_path = "$directory/$full_name"; 
+// CONTINUE HERE
+//   Write a function that maps VoteSmart data to SalesForce columns.
+//   Create the CSV, then dump the contents into the file created here. 
+      file_put_contents($file_path, 'this is a test');
+
+      // provide user a link to the file
+      global $base_url;
+      $path = $base_url .'/'. $file_path; 
+      $link = l($full_name, $path);
+
+      db_query("UPDATE {votesmart_list} SET status = 'complete', file_link = '%s' "
+            ."WHERE file_name = '%s' AND timestamp = %d ", 
+            $link, $file_name, $timestamp); 
+    } 
   }
 }
 
@@ -272,20 +273,56 @@ function votesmart_get_contact_info() {
 function _votesmart_get_pending_lists() {
   //   Explode '_' in filename to get API params
   //   (e.g. WHERE state = MA and year = 2010).
+  //
+  // Note: Now that we're creating a record every time
+  // a list gets processed, this is  a little sloppy, 
+  // because it grabs all the 'pending' records, even
+  // after a list is marked 'complete'. This means completed 
+  // lists keep getting copied every time cron runs.  
+  //
+  // todo For now, just filter out lists that have been completed.
+  // This is kluggy. In the future, do something more elegant (BH 9/12/10).
+  // 
+  // Get completed lists to filter out.
+  $results = db_query("SELECT file_name FROM {votesmart_list} "
+                     ."WHERE status = 'complete' ");
+  $exclude = '';
+  $i = 0;
+  while($row = db_fetch_array($results)) {
+    $file_name = $row['file_name']; 
+    $exclude .= ($i == 0) ? "'$file_name'" : ", '$file_name'"; 
+    $i++;
+  }
+  // Get pending lists. 
   $results = db_query("SELECT * FROM {votesmart_list} "
-                     ."WHERE status = 'pending' ");
+                     ."WHERE status = 'pending' " 
+                     ."AND file_name NOT IN ( $exclude )" );
+
+/*
+  //Build an array of completed lists to be filtered out.
+  $results2 = db_query("SELECT file_name FROM {votesmart_list} "
+                      ."WHERE status = 'complete' ");
+  // TODO Build array of file_name's to exclude. 
+  while ($row = db_fetch_array($results)) {
+    
+  }
+// */
+
+
   $lists = array();
   while ($row = db_fetch_array($results)) {
-    $file_name = $row['file_name'];
-    $criteria = explode('_', $file_name);
-    $lists[$file_name]['file_name'] = $file_name;
-    $lists[$file_name]['state'] = $criteria[0];
-    $lists[$file_name]['year'] = $criteria[1];
-    $lists[$file_name]['office'] = $criteria[2];
-    $lists[$file_name]['candidate_records'] = $row['candidate_records']; 
-    $lists[$file_name]['address_records'] = $row['address_records']; 
-    $lists[$file_name]['phone_records'] = $row['phone_records']; 
-    $lists[$file_name]['webaddress_records'] = $row['webaddress_records']; 
+    $file_name = $row['file_name'];  
+// TODO    if () { 
+      $criteria = explode('_', $file_name);
+      $lists[$file_name]['file_name'] = $file_name;
+      $lists[$file_name]['state'] = $criteria[0];
+      $lists[$file_name]['year'] = $criteria[1];
+      $lists[$file_name]['office'] = $criteria[2];
+      $lists[$file_name]['candidate_records'] = $row['candidate_records']; 
+      $lists[$file_name]['address_records'] = $row['address_records']; 
+      $lists[$file_name]['phone_records'] = $row['phone_records']; 
+      $lists[$file_name]['webaddress_records'] = $row['webaddress_records']; 
+// TODO    }
   }
 
   return $lists;
@@ -407,7 +444,6 @@ cellphone: $cellphone
  */
 function _votesmart_get_webaddress($office, $state, $year, $file_name){
  // Get candidates w/o webaddress info.
-dsm('test one');
 /*****
   $results = db_query("SELECT vc.candidateId FROM {votesmart_candidate} vc "
              ."LEFT JOIN {votesmart_address_webaddress} vw "
@@ -424,7 +460,6 @@ dsm('test one');
            ."WHERE candidateId NOT IN ( SELECT candidateId FROM {votesmart_address_webaddress} )");
 
   while ($row = db_fetch_object($results)) {
-dsm('test2');
     $candidateId = $row->candidateId;
 //dsm($candidateId);
     $timestamp = time();

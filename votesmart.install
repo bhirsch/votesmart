@@ -152,6 +152,7 @@ function votesmart_schema() {
   $schema['votesmart_list'] = array(
     'fields' => array(
       'file_name' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'file_link' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
       'status' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       // votesmart_candidate table
       'candidate_records' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
