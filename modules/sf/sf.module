@@ -358,39 +358,73 @@ function _sf_votesmart_address_phone($candidateId) {
  * 
  */  
 function _sf_votesmart_address_webaddress($candidateId) {
-  $results = db_query("SELECT * FROM {votesmart_address_webaddress} " 
-                     ."WHERE candidateId = %d", $candidateId);
-  while($row = db_fetch_object($results)) {
-    $webAddress = $row->webAddress;
-    $webAddressTypeId = $row->webAddressTypeId; 
-    $webAddressType = $row->webAddressType; 
-  }
-  if ($webAddress) {
-    $pass = 1; 
-    switch ($webAddressTypeId) {
-      case 1: // Email
-        $set = 'Email'; 
-        break;
-      case 2: // Webmail
-        $set = 'Webmail';
-        break;
-      case 3: // Website
-        $set = 'Website'; 
-        break;
-      case 4: // Cell Phone
-        $set = 'PhoneCell';
-        break; 
+  $types = array(
+    // votesmart webAddressTypeId => salesforce field name
+    1 => 'Email',
+    2 => 'Webmail',
+    3 => 'Website', 
+    4 => 'PhoneCell', 
+  );
+
+// TODO revise where $pass happens
+  foreach($types as $webAddressTypeId => $field) { 
+    $results = db_query("SELECT * FROM {votesmart_address_webaddress} " 
+                       ."WHERE candidateId = %d "
+                       ."AND webAddressTypeId = %d", 
+                       $candidateId, 
+                       $webAddressTypeId);
+
+    while($row = db_fetch_object($results)) {
+      $webAddress = $row->webAddress;
+      $webAddressTypeId = $row->webAddressTypeId; 
+      $webAddressType = $row->webAddressType; 
+
+/////////////// 
+$testId = 124523;
+if ($candidateId == $testId) {
+print("
+---------------------------------------------------------
+TESTING candidateId: $testId
+---------------------------------------------------------
+");
+print(" \nCHECKPOINT 1/3 \n");
+print_r($row);
+print("webAddress: $webAddress \n"); 
+print("webAddressTypeId: $webAddressTypeId \n"); 
+print("webAddressType: $webAddressType \n"); 
+}
+///////////////
+
+      if ($webAddress && $webAddress != 'Campaign Web address no longer available or candidate does not exist.') {
+
+/////////////// 
+if ($candidateId == $testId) {
+print(" \nCHECKPOINT 2/3 \n");
+print("webAddress: $webAddress \n");
+print("webAddressTypeId: $webAddressTypeId \n");
+}
+///////////////
+
+      $pass = 1; 
+      $sql = "UPDATE {sf_votesmart_to_salesforce} " 
+            ."SET $field = '%s' " 
+            ."WHERE VoteSmartId = %d ";
+      $args = array($webAddress, $candidateId);
+
+///////////////
+if ($candidateId == $testId) {
+print(" \nCHECKPOINT 3/3 \n");
+print("$sql \n");
+print_r($args);
+}
+///////////////
+
+        db_query($sql, $args); 
+      } else {
+        $pass = 0; 
+      }
     }
-    if ($webAddress == 'Campaign Web address no longer available or candidate does not exist.') {
-      $webAddress = 'na'; 
-    }
-    db_query("UPDATE {sf_votesmart_to_salesforce} " 
-            ."SET $set = '%s' " 
-            ."WHERE VoteSmartId = %d ", $webAddress, $candidateId); 
-  } else {
-    $pass = 0; 
   }
-  
   return $pass; 
 }
 
