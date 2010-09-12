@@ -26,8 +26,21 @@ function sf_menu() {
 
 /**
  * Callback for votesmart-to-salesforce page. 
+ * 
+ * todo Refine this one day. Sent output through a theme function. 
  */ 
 function sf_lists() {
+  // Instructions
+  $output = t("List Building is a work in progress. Here's the current process: " 
+            ."<ol> 
+                <li>To put a new list in the queue go here: votesmart/buildlist/%/%  <br/>(that is, votesmart/buildlist/[state]/[year] for example votesmart/buildlist/ia/2010) </li>
+                <li>The list will get processed on cron. Check the status of your list here: votesmart/lists</li>
+                <li>When the list's status says complete, download a CSV to be imported to SalesForce below.</li>
+              </ol>
+              <p>Note: Lists will appear below the minute they are created. Be sure to check the status of your list before dowonloading and importing, otherwise you'll get a bunch of names without phone numbers or websites.</p>
+              <p>Another way to check and see if the list looks ready for download is to go to the URL below WITHOUT '/csv' at the end. There you can view the data before you download it. </p><br/><br/>"); 
+
+  // Create links to existing lists. 
   $results = db_query("SELECT DISTINCT State, ElectionYear FROM {sf_votesmart_to_salesforce} "); 
   $paths = array();
   while ($row = db_fetch_object($results)) {
