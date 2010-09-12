@@ -13,7 +13,33 @@
  * 
  * TODO provide a list of links to dynamic views / csv files. 
  */ 
+function sf_menu() {
+  $items = array();
 
+  $items['votesmart-to-salesforce'] = array(
+    'title' => 'Candidate Lists',
+    'page callback' => 'sf_lists',
+    'access arguments' => array('access content'),
+  );
+
+  return $items;
+}
+
+function sf_lists() {
+  $results = db_query("SELECT DISTINCT State, ElectionYear FROM {sf_votesmart_to_salesforce} "); 
+  $paths = array();
+  while ($row = db_fetch_object($results)) {
+    $state = $row->State;
+    $year = $row->ElectionYear;
+    $paths[] = "votesmart-to-salesforce/$state/$year/csv";
+  }
+  foreach ($paths as $path) {
+    $output .= l($path, $path); 
+    $output .= '<br/>';
+  }
+
+  return $output;
+}
 
 /**
  * Implementation of hook_cron(). 
@@ -35,17 +61,23 @@ function _sf_votesmart_to_salesforce() {
   $candidateIds = _sf_new_candidateIds(); 
   // Iterate through all candidates whose status is not 'complete'
   foreach($candidateIds as $candidateId) { 
+// TODO People with incomplete data never pass with this system. Is this how it should be? Makes sense if we're updating data. But we're not really doing updates right now. (E.g. there are some people who just don't have address records, like candidateId: 122012.)
     $pass = 0; 
     // Get data from votesmart_candidate table. 
     $pass += _sf_votesmart_candidate($candidateId);  
-dsm($pass);
     // Get data votesmart_address_address table.
+    $pass += _sf_votesmart_address_address($candidateId);
     // Get data votesmart_address_phone table.
+    $pass += _sf_votesmart_address_phone($candidateId); 
     // Get data votesmart_address_webaddress table.
+    $pass += _sf_votesmart_address_webaddress($candidateId); 
     // Check if data is done being processed. Each 
     // function returns +1 if it completes its own data processing. 
+//dsm($pass);
     if ($pass == 4) {
-      // TODO Update status to 'complete'.
+      // Update status to 'complete'.
+      db_query("UPDATE {sf_votesmart_to_salesforce_status} "
+       ."SET status = 'complete' WHERE VoteSmartID = %d", $candidateId);
     }
   } 
 }
@@ -73,7 +105,7 @@ function _sf_new_candidateIds() {
     $sql .= "WHERE candidateId NOT IN ( $exclude )";
   } 
   $results = db_query($sql);
-  // Now find out if there are new IDs to insert.
+  // Insert new Ids and set to 'pending'.
   $values0 = '';
   $values1 = '';
   $i = 0; 
@@ -101,6 +133,7 @@ function _sf_new_candidateIds() {
     $candidateIds[] = $row->VoteSmartID;
   }
 
+//dsm($candidateIds);
   return $candidateIds; 
 }
 
@@ -134,7 +167,23 @@ function _sf_votesmart_candidate($candidateId) {
     $ElectionStage = $row->electionStage;
     $ElectionDate = $row->electionDate;
     $ElectionYear = $row->electionYear;
-    $Notes = "electionStatus: $row->electionStatus, electionSpecial: $row->electionSpecial, preferredName: $row->preferredName, suffix: $row->suffix, ballotname: $row->ballotname, electionDistrictId: $row->electionDistrictId, electionOfficeId: $row->electionOfficeId, electionOfficeTypeId: $row->electionOfficeTypeId, officeParties: $row->officeParties, officeDistrictId: $row->officeDistrictId, officeDistrictName: $row->officeDistrictName, officeStateId: $row->officeStateId, officeId: $row->officeId, officeName: $row->officeName, officeTypeId: $row->officeTypeId, timestamp: $row->timestamp"; 
+    $Notes = ($row->electionStatus) ? "electionStatus: $row->electionStatus, " : '' ; 
+      $Notes .= ($row->electionSpecial) ? "electionSpecial: $row->electionSpecial, " : '' ; 
+      $Notes .= ($row->preferredName) ? "preferredName: $row->preferredName, " : '' ;
+      $Notes .= ($row->suffix) ?  "suffix: $row->suffix, " : '' ;
+      $Notes .= ($row->ballotname) ? "ballotname: $row->ballotname, " : '' ; 
+      $Notes .= ($row->electionDistrictId) ? "electionDistrictId: $row->electionDistrictId, " : '' ; 
+      $Notes .= ($row->electionOfficeId) ? "electionOfficeId: $row->electionOfficeId, " : '' ;
+      $Notes .= ($row->electionOfficeTypeId) ? "electionOfficeTypeId: $row->electionOfficeTypeId, " : '' ;
+      $Notes .= ($row->officeParties) ? "officeParties: $row->officeParties, " : '' ;
+      $Notes .= ($row->officeDistrictId) ? "officeDistrictId: $row->officeDistrictId, " : '' ;
+      $Notes .= ($row->officeDistrictName) ? "officeDistrictName: $row->officeDistrictName, " : '' ;
+      $Notes .= ($row->officeStateId) ? " officeStateId: $row->officeStateId, " : '' ;
+      $Notes .= ($row->officeId) ? "officeId: $row->officeId, " : '' ;
+      $Notes .= ($row->officeName) ? "officeName: $row->officeName, " : '' ;
+      $Notes .= ($row->officeTypeId) ? "officeTypeId: $row->officeTypeId, " : '' ; 
+      $Notes .= ($row->timestamp) ? "timestamp: $row->timestamp, " : '' ; 
+      $Notes .= "VoteSmart page: http://votesmart.org/bio.php?can_id=$candidateId ";
   } 
   if ($LastName) {
     db_query("UPDATE {sf_votesmart_to_salesforce} " 
@@ -184,6 +233,165 @@ Notes              $Notes,
   }
 
   return $pass;
+}
+
+/**
+ * Get data from votesmart_address_address table. 
+ * 
+ * @return 
+ *  int, 1 pass, 0 fail.
+ */ 
+function _sf_votesmart_address_address($candidateId) {
+  $sql = "SELECT city, zip FROM {votesmart_address_address} WHERE candidateId = %d";
+  $results = db_query($sql, $candidateId); 
+  while($row = db_fetch_object($results)){
+    $city = $row->city;
+    $zip = $row->zip; 
+  }
+  if ($city) {
+    db_query("UPDATE {sf_votesmart_to_salesforce} "
+          ."SET City = '%s', PostalCode = '%s', Country = 'USA' "
+          ."WHERE VoteSmartID = %d ", $city, $zip, $candidateId); 
+    $pass = 1; 
+  } else {
+    $pass = 0; 
+//dsm($candidateId);
+  }
+    
+  return $pass;
+}
+
+/**
+ * Get data from votesmart_address_phone table. 
+ * 
+ * @return 
+ *  int, 1 pass, 0 fail.
+ * 
+ * Phone numbers seem to be entered in 
+ * the following ways 
+ * 401-295-4352
+ * 712-274-8874 (H)   
+ * 712-274-8874 (W)
+ * 913-341-1028 (Home)
+ * 913-341-1028 (Business)
+ * 
+ * NOTE: Cell phones seem to get stored 
+ * in webAddress field in votesmart_address_webaddress.
+ * I haven't actually seen a cell phone in a phone1 or phone2 
+ * field yet. (BH 9/11/10)
+ * 
+ * TODO Figure out what to do with this...
+ * There are phone numbers for candidateId's in votesmart_address_phone
+ * w/o matching records in votesmart_candidate. (e.g. votesmart.org/bio.php?can_id=103301) 
+ * I'm not sure if these are for incumbents ('former candidates' not in races now) 
+ * or old data that hasn't been cleaned up, or what. For now, leave it.
+ * No harm done. NOTE: As I'm testing now 140 of 560 unique candidateId numbers in 
+ * the phone table are orphans and only 344 of 1125 candidates from IA, WS, RI, and KS
+ * have phone numbers.  
+ */ 
+function _sf_votesmart_address_phone($candidateId) {
+  $results = db_query("SELECT phone1, phone2 FROM {votesmart_address_phone} "
+                     ."WHERE candidateId = %d ", $candidateId);
+//$sf_debug = variable_get('sf_debug', 0);
+//$sf_debug++;
+//variable_set('sf_debug', $sf_debug);
+//if ($candidateId == '32419') {
+//dsm('test');
+//}
+  while($row = db_fetch_object($results)) {
+    $phone1 = trim($row->phone1);
+    $phone2 = trim($row->phone2); 
+  }
+  if ($phone1 || $phone2) {
+    $pass = 1; 
+    if ($phone1) {
+      // if phone1 like 712-274-8874 (W) or 913-341-1028 (Business) 
+      if (strpos($phone1, 'W') || strpos($phone1, 'B')) {
+        $PhoneDistrictOffice == $phone1;
+      // like 712-274-8874 (H) or 913-341-1028 (Home)
+      } else if (strpos($phone1, 'H')) {
+        $PhoneHome = $phone1; 
+      } else {
+        $PhoneGovt = $phone1; 
+      }
+    } 
+    if ($phone2) {
+      // if phone2 is like this: 401-295-4352
+      if (strlen($phone2) == '13' && !$PhoneGovt) {
+        $PhoneGovt = $phone2; 
+      // if phone2 like 712-274-8874 (W) or 913-341-1028 (Business) 
+      } else if ((strpos($phone2, 'W') || strpos($phone2, 'B')) 
+         && !$PhoneDistrictOffice) {
+        $PhoneDistrictOffice == $phone2;
+      } else if ((strpos($phone2, 'W') || strpos($phone2, 'B')) 
+         && !$PhoneGovt) {
+        $PhoneGovt == $phone2;
+      // like 712-274-8874 (H) or 913-341-1028 (Home)
+      } else if (strpos($phone2, 'H')) {
+        $PhoneHome = $phone2; 
+      } else if (!$PhoneDistrictOffice) {
+        $PhoneDistrictOffice = $phone2; 
+      }
+    }
+    // Update db with phone numbers
+    db_query("UPDATE {sf_votesmart_to_salesforce} " 
+            ."SET PhoneDistrictOffice = '%s', " 
+              ."PhoneHome = '%s', " 
+              ."PhoneGovt = '%s' "
+            ."WHERE VoteSmartID = %d ",
+            $PhoneDistrictOffice,
+            $PhoneHome,
+            $PhoneGovt,
+            $candidateId);
+  } else {
+    $pass = 0; 
+  }
+
+  return $pass;
+}
+
+/**
+ * Get data from votesmart_address_webaddress table. 
+ * 
+ * @return 
+ *  int, 1 pass, 0 fail.
+ * 
+ */  
+function _sf_votesmart_address_webaddress($candidateId) {
+  $results = db_query("SELECT * FROM {votesmart_address_webaddress} " 
+                     ."WHERE candidateId = %d", $candidateId);
+  while($row = db_fetch_object($results)) {
+    $webAddress = $row->webAddress;
+    $webAddressTypeId = $row->webAddressTypeId; 
+    $webAddressType = $row->webAddressType; 
+  }
+  if ($webAddress) {
+    $pass = 1; 
+    switch ($webAddressTypeId) {
+      case 1: // Email
+        $set = 'Email'; 
+        break;
+      case 2: // Webmail
+        $set = 'Webmail';
+        break;
+      case 3: // Website
+        $set = 'Website'; 
+        break;
+      case 4: // Cell Phone
+        $set = 'PhoneCell';
+        break; 
+    }
+    if ($webAddress == 'Campaign Web address no longer available or candidate does not exist.') {
+      $webAddress = 'na'; 
+    }
+    db_query("UPDATE {sf_votesmart_to_salesforce} " 
+            ."SET $set = '%s' " 
+            ."WHERE VoteSmartId = %d ", $webAddress, $candidateId); 
+  } else {
+    $pass = 0; 
+  }
+  
+  return $pass; 
 }
 
 
