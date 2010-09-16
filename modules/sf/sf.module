@@ -86,8 +86,6 @@ function _sf_votesmart_to_salesforce() {
     $pass += _sf_votesmart_address_phone($candidateId); 
     // Get data votesmart_address_webaddress table.
     $pass += _sf_votesmart_address_webaddress($candidateId); 
-    // Determine if candidate has an opponent
-// TODO
     // Check if data is done being processed. Each 
     // function returns +1 if it completes its own data processing. 
 //dsm($pass);
@@ -161,7 +159,7 @@ function _sf_new_candidateIds() {
  *  int, 1 pass, 0 fail.
  */ 
 function _sf_votesmart_candidate($candidateId) {
-  $results = db_query("SELECT firstName, lastName, title, electionStateId,  " 
+  $results = db_query("SELECT candidateId, firstName, lastName, title, electionStateId,  " 
                        ."electionDistrictName, electionOffice, electionParties,  " 
                        ."electionStage, electionDate, electionYear,  "
 
@@ -200,8 +198,11 @@ function _sf_votesmart_candidate($candidateId) {
       $Notes .= ($row->officeName) ? "officeName: $row->officeName, " : '' ;
       $Notes .= ($row->officeTypeId) ? "officeTypeId: $row->officeTypeId, " : '' ; 
       $Notes .= ($row->timestamp) ? "timestamp: $row->timestamp, " : '' ; 
-      $Notes .= "VoteSmart page: http://votesmart.org/bio.php?can_id=$candidateId ";
+    $VoteSmartBio = "VoteSmart page: http://votesmart.org/bio.php?can_id=$candidateId";
+    // Check to see if candidate has opposition.
+    $opponent = _sf_votesmart_opponent($row); 
   } 
+
   if ($LastName) {
     db_query("UPDATE {sf_votesmart_to_salesforce} " 
             ."SET " 
@@ -215,7 +216,8 @@ function _sf_votesmart_candidate($candidateId) {
               ."ElectionStage = '%s', "
               ."ElectionDate = '%s', "
               ."ElectionYear = '%s', "
-              ."Notes = '%s' "
+              ."Notes = '%s', "
+              ."$opponent->field = '%s' "  
             ."WHERE VoteSmartID = %d",
               $FirstName, 
               $LastName, 
@@ -228,6 +230,7 @@ function _sf_votesmart_candidate($candidateId) {
               $ElectionDate, 
               $ElectionYear, 
               $Notes,
+              $opponent->status,
             $candidateId); 
 /*
 dsm("
@@ -412,7 +415,76 @@ function _sf_votesmart_address_webaddress($candidateId) {
   return $pass; 
 }
 
+/**
+ * @param $row
+ *  object, with fields from votesmart_candidate table.
+ * 
+ * @return $opponent
+ *  object, $opponent->status = yes/no, $opponent->field = "PrimaryOpponent" or "GeneralOpponent"
+ */
+function _sf_votesmart_opponent($candidate) {
+  // Find out how many people in the same state, running for same office 
+  // in same district, in  same year.
+  $sql = "SELECT COUNT(candidateId) AS count FROM {votesmart_candidate} "
+        ."WHERE electionStateId = '%s' "
+        ."AND electionOffice = '%s' "
+        ."AND electionDistrictName = '%s' "
+        ."AND electionYear = '%s' ";
+  $args = array(
+    $candidate->electionStateId,
+    $candidate->electionOffice,
+    $candidate->electionDistrictName,
+    $candidate->electionYear,
+  );
+  if ($candidate->electionStage == 'Primary'  || $candidate->electionStage == 'Primary Runoff') { 
+    // 
+    $opponent->field = 'PrimaryOpponent';
+    // For primaries, opponents are from same party.
+    $sql .= "AND electionParties = '%s' ";
+    $args[] = $candidate->electionParties;
+    $count = db_result(db_query($sql, $args)); 
+    // Figure out if candidate has an opponent. 
+    // Note: In 2-member House/Assembly districts
+    //   if <= 2 people running, all candidates get elected.
+    //   if >2 people running, it's a contested race. 
+    switch ($candidate->electionStateId) {
+      case 'NJ': // 2-member House/Assembly districts
+        $opponent->status = ($count > 2) ? 'yes' : 'no' ;
+        break;
+      case 'WA': // 2-member House/Assembly districts
+        $opponent->status = ($count > 2) ? 'yes' : 'no' ;
+        break;
+      case 'AZ': // 2-member House/Assembly districts
+        $opponent->status = ($count > 2) ? 'yes' : 'no' ;
+        break;
+      case 'ID': // 2-member House/Assembly districts
+        $opponent->status = ($count > 2) ? 'yes' : 'no' ;
+        break;
+      case 'SD': // 2-member House/Assembly districts
+        $opponent->status = ($count > 2) ? 'yes' : 'no' ;
+        break;
+      case 'ND': // 2-member House/Assembly districts
+        $opponent->status = ($count > 2) ? 'yes' : 'no' ;
+        break;
+      case 'MD': 
+        // MD districts have 3 Representatives per district.
+        // Reps maybe "at large" sharing representation for who district.
+        // Or distict may be divided into subdistricts.
+        // todo This is not actually very precise. But for now, use this...
+        $opponent->status = ($count > 3) ? 'yes' : 'no' ;
+        break;
+      default: 
+        $opponent->status = ($count > 1) ? 'yes' : 'no' ;
+        break;
+    }
+  } else if ($candidate->electionStage == 'General') {
+    // 
+    $opponent->field = 'GeneralOpponent';
+    $opponent->status = ($count > 1) ? 'yes' : 'no' ;
+  }
 
+  return $opponent; 
+}
 
 
 

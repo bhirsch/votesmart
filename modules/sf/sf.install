@@ -66,7 +66,10 @@ function sf_schema() {
       'Office' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'Party' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'PhoneHome' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      // Phase out "Opponent" field
       'Opponent' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'PrimaryOpponent' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'GeneralOpponent' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'LeadQuality' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'PhoneCampaign' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'WebsiteQuality' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
@@ -77,6 +80,7 @@ function sf_schema() {
       'ElectionDate' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'ElectionYear' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'Webmail' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
+      'VoteSmartBio' => array('type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => ''),
       'Notes' => array('type' => 'text'),
     ),
     'primary key' => array('VoteSmartID'),

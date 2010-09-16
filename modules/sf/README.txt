@@ -7,6 +7,16 @@ See VoteSmart module README.txt for roadmap....
   neatly formatted for sending to SalesForce. 
 
 
+OPPONENT: 
+
+Road Map: 
+Create four fields: "Opponent Primary" and "Opponent General"
+                    "Election Day Primary" and "Election Day General"
+
+
+SELECT CONCAT(State, ' - ', District, ', ', Office) AS district,
+COUNT(district) AS count FROM  sf_votesmart_to_salesforce GROUP BY district
+ORDER BY count DESC;
 
 
 
