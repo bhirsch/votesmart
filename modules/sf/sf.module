@@ -41,7 +41,7 @@ function sf_lists() {
               <p>Another way to check and see if the list looks ready for download is to go to the URL below WITHOUT '/csv' at the end. There you can view the data before you download it. </p><br/><br/>"); 
 
   // Create links to existing lists. 
-  $results = db_query("SELECT DISTINCT State, ElectionYear FROM {sf_votesmart_to_salesforce} "); 
+  $results = db_query("SELECT DISTINCT State, ElectionYear FROM {sf_votesmart_to_salesforce} ORDER BY State"); 
   $paths = array();
   while ($row = db_fetch_object($results)) {
     $state = $row->State;
@@ -198,7 +198,7 @@ function _sf_votesmart_candidate($candidateId) {
       $Notes .= ($row->officeName) ? "officeName: $row->officeName, " : '' ;
       $Notes .= ($row->officeTypeId) ? "officeTypeId: $row->officeTypeId, " : '' ; 
       $Notes .= ($row->timestamp) ? "timestamp: $row->timestamp, " : '' ; 
-    $VoteSmartBio = "VoteSmart page: http://votesmart.org/bio.php?can_id=$candidateId";
+    $VoteSmartBio = "http://votesmart.org/bio.php?can_id=$candidateId";
     // Check to see if candidate has opposition.
     $opponent = _sf_votesmart_opponent($row); 
   } 
@@ -217,6 +217,7 @@ function _sf_votesmart_candidate($candidateId) {
               ."ElectionDate = '%s', "
               ."ElectionYear = '%s', "
               ."Notes = '%s', "
+              ."VoteSmartBio = '%s', "
               ."$opponent->field = '%s' "  
             ."WHERE VoteSmartID = %d",
               $FirstName, 
@@ -230,6 +231,7 @@ function _sf_votesmart_candidate($candidateId) {
               $ElectionDate, 
               $ElectionYear, 
               $Notes,
+              $VoteSmartBio,
               $opponent->status,
             $candidateId); 
 /*
@@ -479,6 +481,7 @@ function _sf_votesmart_opponent($candidate) {
     }
   } else if ($candidate->electionStage == 'General') {
     // 
+    $count = db_result(db_query($sql, $args)); 
     $opponent->field = 'GeneralOpponent';
     $opponent->status = ($count > 1) ? 'yes' : 'no' ;
   }
