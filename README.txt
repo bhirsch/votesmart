@@ -1,6 +1,6 @@
 NOTES FOR FUTURE REWRITE: 
 Making this whole thing "list oriented" was a mistake. This was originally
-created in order to use VoteSmart data to do build lists of candidates to be
+created in order to use VoteSmart data to build lists of candidates to be
 imported into SalesForce. But it's really doing three separate things, that should really be packaged into three separate modules:
 
 1. VoteSmart modules.

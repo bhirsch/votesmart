@@ -20,6 +20,9 @@ function votesmart_help($path, $arg) {
 }
 // */
 
+/**
+ * Implementation of hook_menu().
+ */
 function votesmart_menu() {
   $items = array();
 
@@ -240,31 +243,6 @@ function votesmart_get_contact_info() {
     if ($batch[0]->phone_records == $batch[1]->phone_records 
      && $batch[0]->address_records == $batch[1]->address_records
      && $batch[0]->webaddress_records == $batch[1]->webaddress_records) {
-
-/*****************
-// NOTE: This is all handled by TW / Views / Views Bonus now.
-      // make sure directory exists 
-      $directory = file_directory_path() ."/votesmart/"; 
-      file_check_directory($directory, FILE_CREATE_DIRECTORY);
-
-      // save results to a file
-      // (store parameters in filename)
-      $full_name = $file_name .'.csv';
-      $file_path = "$directory/$full_name"; 
-// CONTINUE HERE
-//   Write a function that maps VoteSmart data to SalesForce columns.
-//   Create the CSV, then dump the contents into the file created here. 
-      file_put_contents($file_path, 'This was a test. Please see SalesForce module and TW View for CSV.');
-
-      // provide user a link to the file
-      global $base_url;
-      $path = $base_url .'/'. $file_path; 
-      $link = l($full_name, $path);
-
-      db_query("UPDATE {votesmart_list} SET status = 'complete', file_link = '%s' "
-            ."WHERE file_name = '%s' AND timestamp = %d ", 
-            $link, $file_name, $timestamp); 
-// ****************/
 
       db_query("UPDATE {votesmart_list} SET status = 'complete' "
             ."WHERE file_name = '%s' AND timestamp = %d ", 
