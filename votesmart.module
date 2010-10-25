@@ -66,20 +66,58 @@ function votesmart_menu() {
 /**
  * todo 
  *  FOR NOW, JUST GET STATE LEGISLATOR INFO.
+ *  TEMP: ADD LOCAL TOO. THIS SHOULD ALL REALLY BE OPTIONS THROUGH A FORM AND/OR API.
  * 
  * Get typeId here:
  * http://api.votesmart.org/Office.getTypes?key=8be7942478e869e453aa7a5b48de02eb
  * 
- * Then get officeId here:
- * (e.g. L for state legislatures)
+ * Then get officeIds for these office types:
+ * - L for state legislatures
+ * - K State Judicial
+ * 
  * http://api.votesmart.org/Office.getOfficesByType?typeId=L&key=8be7942478e869e453aa7a5b48de02eb
  */
 function votesmart_get_office_ids() {
   $office_ids = array(
+    // officeTypeId L, state legislature
     'state-senate' => 9, // State Senate
     'state-house' => 8, // House of Representatives
     'state-assembly' => 7, // State Assembly
+    // officeTypeId K, State Judicial
+    // officeTypeId K, State Judicial
+    // todo For consistency with VoteSmart, format
+    // like this: Clerk of Courts
+    // not like this: clerk-of-courts
   );
+ // LOOKS LIKE LOCAL OFFICIALS HAVE A DIFFERENT SET OF CLASSES ALL TOGETHER (ALL UNDER CLASS: LOCAL)
+  // officeTypeId M, Local Executive
+  $class = 'Office';
+  $method = 'getOfficesByType';
+  $key = '8be7942478e869e453aa7a5b48de02eb'; // todo un-hard-code
+  $args = array('typeId' => 'M');
+  $xml = votesmart_xml($class, $method, $key, $args); 
+  $a = array();
+  foreach ($xml->office as $office) {
+    $name = (string)$office->name;
+    $officeId = (string)$office->officeId;
+    $a[$name] = $officeId;
+  } 
+  // officeTypeId N, Local Legislative
+  $class = 'Office';
+  $method = 'getOfficesByType';
+  $key = '8be7942478e869e453aa7a5b48de02eb'; // todo un-hard-code
+  $args = array('typeId' => 'N');
+  $xml = votesmart_xml($class, $method, $key, $args); 
+  $b = array();
+  foreach ($xml->office as $office) {
+    $name = (string)$office->name;
+    $officeId = (string)$office->officeId;
+    $b[$name] = $officeId;
+  } 
+  // merge
+  $office_ids = array_merge($office_ids, $a, $b);
+// */
+
   return $office_ids;
 }
 // */

@@ -69,6 +69,22 @@ Get each candidate's website and email info like this:
 http://api.votesmart.org/Address.getCampaignWebAddress?candidateId=81542&key=8be7942478e869e453aa7a5b48de02eb
 
 
+LOCAL
+From VoteSmart, Mike Shultz: 
+They are accessible, but it's a bit tricky for locals.  There's a lot of
+different little offices.  We also only cover cities based on size(over
+50k if I remember).
+
+For instance, here's a call that gets all commissioners in MA:
+
+http://api.votesmart.org/Officials.getByOfficeState?officeId=433&stateId=MA&key=8be7942478e869e453aa7a5b48de02eb
+
+Local.getCities()
+Input: stateId*
+
+Local.getOfficials()
+Input: localId* 
+
 
 NOTES: 
 If you use VoteSmart library, change $key in lib/slipphp/config.php
